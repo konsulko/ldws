@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.6) 
 
 PROJECT(ldws)
-SET(PROJECT_VERSION "0.1")
+SET(PROJECT_VERSION "0.9")
 
 FIND_PACKAGE(PkgConfig REQUIRED)
 
