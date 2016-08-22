@@ -28,6 +28,25 @@ using namespace std;
 using namespace cv;
 using namespace libconfig;
 
+static int64 time_begin;
+static double frame_fps;
+
+static inline void frame_begin() { time_begin = getTickCount(); }
+
+static inline void frame_end()
+{
+	int64 delta = getTickCount() - time_begin;
+	double freq = getTickFrequency();
+	frame_fps = freq / delta;
+}
+
+static inline string frame_fps_str()
+{
+	stringstream ss;
+	ss << frame_fps;
+	return ss.str();
+}
+
 int main(int argc, char* argv[])
 {
 	string config_file;
@@ -83,9 +102,10 @@ int main(int argc, char* argv[])
 	VideoWriter output_writer("ldws-full.avi", CV_FOURCC('P','I','M','1'), 30, frameSize, true);
 
 	UMat frame;
-
 	while (true)
 	{
+		frame_begin();
+
 		capture >> frame;
 		if (frame.empty())
 			break;
@@ -111,15 +131,18 @@ int main(int argc, char* argv[])
 			imshow("Contours",contoursInv);
 		}
 
+		putText(frame, "FPS: " + frame_fps_str(), Point(5,25), FONT_HERSHEY_SIMPLEX, 1., Scalar(255, 100, 0), 2);
+
 		// Display full image
-		// FIXME just edges for now
-		imshow(window_name, contoursInv);
+		imshow(window_name, frame);
+
+		frame_end();
 
 		// Write frame to output file
 		if (write_output)
 			output_writer << frame.getMat(ACCESS_READ);
 
-		char key = (char) waitKey(10);
+		if (waitKey(1) == 27) break;
 	}
 
 
