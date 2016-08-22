@@ -111,6 +111,10 @@ int main(int argc, char* argv[])
 			imshow("Contours",contoursInv);
 		}
 
+		// Display full image
+		// FIXME just edges for now
+		imshow(window_name, contoursInv);
+
 		// Write frame to output file
 		if (write_output)
 			output_writer << frame.getMat(ACCESS_READ);
