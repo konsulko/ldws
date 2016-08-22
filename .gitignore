@@ -1,7 +1,8 @@
+config.h
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles
 ldws
 ldws.conf
 ldws-full.avi
-CMakeCache.txt
-cmake_install.cmake
-CMakeFiles
 Makefile

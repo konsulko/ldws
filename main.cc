@@ -22,6 +22,8 @@
 #include <iostream>
 #include <string>
 
+#include "config.h"
+
 using namespace std;
 using namespace cv;
 using namespace libconfig;
@@ -34,7 +36,7 @@ int main(int argc, char* argv[])
 
 	// Parse command line options
 	try {
-		TCLAP::CmdLine cmd_line("Lane Departure Warning System", ' ', "0.9");
+		TCLAP::CmdLine cmd_line("Lane Departure Warning System", ' ', "LDWS_VERSION");
 		TCLAP::SwitchArg display_intermediate_switch("i","display-intermediate","Display intermediate processing steps", cmd_line, false);
 		TCLAP::SwitchArg verbose_switch("v","verbose","Verbose messages", cmd_line, false);
 		TCLAP::ValueArg<string> config_file_string("c","config-file","Configuration file name", false, "ldws.conf", "filename");
