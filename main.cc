@@ -31,13 +31,15 @@ using namespace libconfig;
 int main(int argc, char* argv[])
 {
 	string config_file;
-	bool display_intermediate = true;
+	bool display_intermediate;
+	bool write_output;
 	bool verbose;
 
 	// Parse command line options
 	try {
 		TCLAP::CmdLine cmd_line("Lane Departure Warning System", ' ', LDWS_VERSION);
 		TCLAP::SwitchArg display_intermediate_switch("i","display-intermediate","Display intermediate processing steps", cmd_line, false);
+		TCLAP::SwitchArg write_output_switch("w","write-output","Write output to a file", cmd_line, false);
 		TCLAP::SwitchArg verbose_switch("v","verbose","Verbose messages", cmd_line, false);
 		TCLAP::ValueArg<string> config_file_string("c","config-file","Configuration file name", false, "ldws.conf", "filename");
 		cmd_line.add(config_file_string);
@@ -45,6 +47,7 @@ int main(int argc, char* argv[])
 		cmd_line.parse(argc, argv);
 
 		display_intermediate = display_intermediate_switch.getValue();
+		write_output = write_output_switch.getValue();
 		verbose = verbose_switch.getValue();
 		config_file = config_file_string.getValue();
 	} catch (TCLAP::ArgException &e) {
@@ -76,7 +79,8 @@ int main(int argc, char* argv[])
 	std::cout << "Frame Size = " << width << "x" << height << std::endl;
 	std::cout << "FOURCC = " << fourcc << std::endl;
 
-	VideoWriter oVideoWriter ("ldws-full.avi", CV_FOURCC('P','I','M','1'), 30, frameSize, true);
+	// FIXME this should be conditional
+	VideoWriter output_writer("ldws-full.avi", CV_FOURCC('P','I','M','1'), 30, frameSize, true);
 
 	UMat frame;
 
@@ -108,7 +112,8 @@ int main(int argc, char* argv[])
 		}
 
 		// Write frame to output file
-		oVideoWriter << frame.getMat(ACCESS_READ);
+		if (write_output)
+			output_writer << frame.getMat(ACCESS_READ);
 
 		char key = (char) waitKey(10);
 	}
