@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 	// FIXME this should be conditional
 	VideoWriter output_writer("ldws-full.avi", CV_FOURCC('P','I','M','1'), 30, frame_size, true);
 
-	Mat frame;
+	Mat frame, edge_inv;
 	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge, gpu_edge_inv;
 	UMat u_frame, u_gray, u_edge, u_edge_inv;
 	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(80, 250, 3, false);
@@ -150,9 +150,10 @@ int main(int argc, char* argv[])
 		// Display Canny image
 		if (display_intermediate) {
 			//namedWindow("Contours");
-			if (enable_cuda)
-				imshow("Edges", gpu_edge_inv);
-			else
+			if (enable_cuda) {
+				gpu_edge_inv.download(edge_inv);
+				imshow("Edges", edge_inv);
+			} else
 				imshow("Edges", u_edge_inv);
 		}
 
