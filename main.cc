@@ -14,8 +14,11 @@
  *     limitations under the License.
  */
 
+#include <opencv2/core/cuda.hpp>
+#include <opencv2/core/ocl.hpp>
+#include <opencv2/cudaarithm.hpp>
+#include <opencv2/cudaimgproc.hpp>
 #include "opencv2/highgui/highgui.hpp"
-//#include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <tclap/CmdLine.h>
 #include <libconfig.h++>
@@ -23,49 +26,40 @@
 #include <string>
 
 #include "config.h"
+#include "fps.h"
 
 using namespace std;
 using namespace cv;
 using namespace libconfig;
 
-static int64 time_begin;
-static double frame_fps;
-
-static inline void frame_begin() { time_begin = getTickCount(); }
-
-static inline void frame_end()
-{
-	int64 delta = getTickCount() - time_begin;
-	double freq = getTickFrequency();
-	frame_fps = freq / delta;
-}
-
-static inline string frame_fps_str()
-{
-	stringstream ss;
-	ss << frame_fps;
-	return ss.str();
-}
-
 int main(int argc, char* argv[])
 {
 	string config_file;
 	bool display_intermediate;
+	bool enable_cuda;
+	bool enable_opencl;
+	bool enable_display;
 	bool write_output;
 	bool verbose;
 
 	// Parse command line options
 	try {
 		TCLAP::CmdLine cmd_line("Lane Departure Warning System", ' ', LDWS_VERSION);
+		// FIXME CUDA and OpenCL should be mutually exclusive switches
+		TCLAP::SwitchArg enable_cuda_switch("u","enable-cuda","Enable CUDA support", cmd_line, false);
+		TCLAP::SwitchArg enable_opencl_switch("o","enable-opencl","Enable OpenCL support", cmd_line, false);
+		TCLAP::SwitchArg disable_display_switch("d","disable-display","Disable video display", cmd_line, false);
 		TCLAP::SwitchArg display_intermediate_switch("i","display-intermediate","Display intermediate processing steps", cmd_line, false);
-		TCLAP::SwitchArg write_output_switch("w","write-output","Write output to a file", cmd_line, false);
+		TCLAP::SwitchArg write_output_switch("w","write-video","Write video to a file", cmd_line, false);
 		TCLAP::SwitchArg verbose_switch("v","verbose","Verbose messages", cmd_line, false);
 		TCLAP::ValueArg<string> config_file_string("c","config-file","Configuration file name", false, "ldws.conf", "filename");
 		cmd_line.add(config_file_string);
-
 		cmd_line.parse(argc, argv);
 
 		display_intermediate = display_intermediate_switch.getValue();
+		enable_cuda = enable_cuda_switch.getValue();
+		enable_opencl = enable_opencl_switch.getValue();
+		enable_display = !disable_display_switch.getValue();
 		write_output = write_output_switch.getValue();
 		verbose = verbose_switch.getValue();
 		config_file = config_file_string.getValue();
@@ -84,35 +78,46 @@ int main(int argc, char* argv[])
 	if (!capture.isOpened())
 	{capture.open(atoi(video_file.c_str()));}
 
-	// Create output window
-	string window_name = "Full Video";
-	namedWindow(window_name, CV_WINDOW_KEEPRATIO);
+	// Toggle OpenCL on/off
+	if (!enable_cuda)
+		cv::ocl::setUseOpenCL(enable_opencl);
 
+	string mode = "CPU";
+	if (enable_cuda)
+		mode = "CUDA";
+	else if (enable_opencl)
+		mode = "OpenCL";
+	cout << "Mode: " << mode << endl;
+
+	// Report video specs
 	double width = capture.get(CV_CAP_PROP_FRAME_WIDTH);
 	double height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
 	int ex = static_cast<int>(capture.get(CV_CAP_PROP_FOURCC));
 	char fourcc[] = {(char)(ex & 0XFF),(char)((ex & 0XFF00) >> 8),(char)((ex & 0XFF0000) >> 16),(char)((ex & 0XFF000000) >> 24),0};
+	Size frame_size(static_cast<int>(width), static_cast<int>(height));
+	cout << "Video: frame size " << width << "x" << height << ", codec " << fourcc << endl;
 
-	Size frameSize(static_cast<int>(width), static_cast<int>(height));
-
-	std::cout << "Frame Size = " << width << "x" << height << std::endl;
-	std::cout << "FOURCC = " << fourcc << std::endl;
+	// Create output window
+	string window_name = "Full Video";
+	if (enable_display) {
+		namedWindow(window_name, CV_WINDOW_KEEPRATIO);
+	}
 
 	// FIXME this should be conditional
-	VideoWriter output_writer("ldws-full.avi", CV_FOURCC('P','I','M','1'), 30, frameSize, true);
+	VideoWriter output_writer("ldws-full.avi", CV_FOURCC('P','I','M','1'), 30, frame_size, true);
 
-	UMat frame;
+	Mat frame;
+	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge, gpu_edge_inv;
+	UMat u_frame, u_gray, u_edge, u_edge_inv;
+	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(80, 250, 3, false);
+
+	frame_avg_init();
+
 	while (true)
 	{
-		frame_begin();
-
 		capture >> frame;
 		if (frame.empty())
 			break;
-		UMat gray;
-		cvtColor(frame,gray,CV_RGB2GRAY);
-		//		Rect roi(0,180,640,180);// set the ROI for the frame
-		//		Mat imgROI = frame(roi);
 
 		// Display original frame
 		if (display_intermediate) {
@@ -120,32 +125,52 @@ int main(int argc, char* argv[])
 			imshow("Original Video", frame);
 		}
 
-		UMat contours;
-		Canny(frame, contours, 80, 250);
-		UMat contoursInv;
-		threshold(contours, contoursInv, 128, 255, THRESH_BINARY_INV);
+		// TODO Add ROI support
+
+		frame_begin();
+
+		if (enable_cuda) {
+			// CUDA
+			gpu_frame.upload(frame);
+			cv::cuda::cvtColor(gpu_frame, gpu_gray, CV_BGR2GRAY);
+			canny->detect(gpu_gray, gpu_edge);
+			cv::cuda::threshold(gpu_edge, gpu_edge_inv, 128, 255, THRESH_BINARY_INV);
+		} else {
+			// TAPI
+			frame.copyTo(u_frame);
+			cvtColor(u_frame, u_gray, CV_BGR2GRAY);
+			Canny(u_frame, u_edge, 80, 250);
+			threshold(u_edge, u_edge_inv, 128, 255, THRESH_BINARY_INV);
+		}
+
+		// TODO Add line detection
+
+		frame_end();
 
 		// Display Canny image
 		if (display_intermediate) {
 			//namedWindow("Contours");
-			imshow("Contours",contoursInv);
+			if (enable_cuda)
+				imshow("Edges", gpu_edge_inv);
+			else
+				imshow("Edges", u_edge_inv);
 		}
 
+		// Display FPS
 		putText(frame, "FPS: " + frame_fps_str(), Point(5,25), FONT_HERSHEY_SIMPLEX, 1., Scalar(255, 100, 0), 2);
 
 		// Display full image
-		imshow(window_name, frame);
-
-		frame_end();
+		if (enable_display)
+			imshow(window_name, frame);
 
 		// Write frame to output file
 		if (write_output)
-			output_writer << frame.getMat(ACCESS_READ);
+			output_writer << frame;
 
 		if (waitKey(1) == 27) break;
 	}
 
-
+	cout << "Average FPS: " << frame_fps_avg_str() << endl;
 }
 
 
