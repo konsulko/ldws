@@ -113,9 +113,9 @@ int main(int argc, char* argv[])
 	// FIXME this should be conditional
 	VideoWriter output_writer("ldws-full.avi", CV_FOURCC('P','I','M','1'), 30, frame_size, true);
 
-	Mat frame, edge_inv;
-	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge, gpu_edge_inv;
-	UMat u_frame, u_gray, u_edge, u_edge_inv;
+	Mat frame, edge;
+	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge;
+	UMat u_frame, u_gray, u_edge;
 	cv::Ptr<cv::cuda::Filter> blur = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(5, 5), 1.5);
 	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(1, 100, 3, false);
 
@@ -142,7 +142,6 @@ int main(int argc, char* argv[])
 			cv::cuda::cvtColor(gpu_roi, gpu_gray, CV_BGR2GRAY);
 			blur->apply(gpu_gray, gpu_gray);
 			canny->detect(gpu_gray, gpu_edge);
-			cv::cuda::threshold(gpu_edge, gpu_edge_inv, 128, 255, THRESH_BINARY_INV);
 		} else {
 			// TAPI
 			frame.copyTo(u_frame);
@@ -150,7 +149,6 @@ int main(int argc, char* argv[])
 			cvtColor(u_roi, u_gray, CV_BGR2GRAY);
 			GaussianBlur(u_gray, u_gray, Size(5, 5), 1.5);
 			Canny(u_gray, u_edge, 1, 100);
-			threshold(u_edge, u_edge_inv, 128, 255, THRESH_BINARY_INV);
 		}
 
 		// TODO Add line detection
@@ -161,10 +159,10 @@ int main(int argc, char* argv[])
 		if (display_intermediate) {
 			namedWindow("Edges");
 			if (enable_cuda) {
-				gpu_edge_inv.download(edge_inv);
-				imshow("Edges", edge_inv);
+				gpu_edge.download(edge);
+				imshow("Edges", edge);
 			} else {
-				imshow("Edges", u_edge_inv);
+				imshow("Edges", u_edge);
 			}
 		}
 
