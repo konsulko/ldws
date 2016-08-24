@@ -71,6 +71,10 @@ int main(int argc, char* argv[])
 	Config cfg;
 	cfg.readFile(config_file.c_str());
 	string video_file = cfg.lookup("video_file");
+	int rx = cfg.lookup("region_of_interest.x");
+	int ry = cfg.lookup("region_of_interest.y");
+	int rw = cfg.lookup("region_of_interest.w");
+	int rh = cfg.lookup("region_of_interest.h");
 
 	// Open video input file/device
 	VideoCapture capture(video_file);
@@ -96,6 +100,8 @@ int main(int argc, char* argv[])
 	char fourcc[] = {(char)(ex & 0XFF),(char)((ex & 0XFF00) >> 8),(char)((ex & 0XFF0000) >> 16),(char)((ex & 0XFF000000) >> 24),0};
 	Size frame_size(static_cast<int>(width), static_cast<int>(height));
 	cout << "Video: frame size " << width << "x" << height << ", codec " << fourcc << endl;
+	// FIXME Error check ROI settings here
+
 
 	// Create output window
 	string window_name = "Full Video";
@@ -121,25 +127,25 @@ int main(int argc, char* argv[])
 
 		// Display original frame
 		if (display_intermediate) {
-			//namedWindow("Original Video", WINDOW_AUTOSIZE);
+			namedWindow("Original Video", WINDOW_AUTOSIZE);
 			imshow("Original Video", frame);
 		}
-
-		// TODO Add ROI support
 
 		frame_begin();
 
 		if (enable_cuda) {
 			// CUDA
 			gpu_frame.upload(frame);
-			cv::cuda::cvtColor(gpu_frame, gpu_gray, CV_BGR2GRAY);
+			cv::cuda::GpuMat gpu_roi(gpu_frame, Rect(rx, ry, rw, rh));
+			cv::cuda::cvtColor(gpu_roi, gpu_gray, CV_BGR2GRAY);
 			canny->detect(gpu_gray, gpu_edge);
 			cv::cuda::threshold(gpu_edge, gpu_edge_inv, 128, 255, THRESH_BINARY_INV);
 		} else {
 			// TAPI
 			frame.copyTo(u_frame);
-			cvtColor(u_frame, u_gray, CV_BGR2GRAY);
-			Canny(u_frame, u_edge, 80, 250);
+			UMat u_roi(u_frame, Rect(rx, ry, rw, rh));
+			cvtColor(u_roi, u_gray, CV_BGR2GRAY);
+			Canny(u_gray, u_edge, 80, 250);
 			threshold(u_edge, u_edge_inv, 128, 255, THRESH_BINARY_INV);
 		}
 
@@ -149,12 +155,13 @@ int main(int argc, char* argv[])
 
 		// Display Canny image
 		if (display_intermediate) {
-			//namedWindow("Contours");
+			namedWindow("Edges");
 			if (enable_cuda) {
 				gpu_edge_inv.download(edge_inv);
 				imshow("Edges", edge_inv);
-			} else
+			} else {
 				imshow("Edges", u_edge_inv);
+			}
 		}
 
 		// Display FPS
