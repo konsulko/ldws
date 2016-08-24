@@ -17,6 +17,7 @@
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/core/ocl.hpp>
 #include <opencv2/cudaarithm.hpp>
+#include <opencv2/cudafilters.hpp>
 #include <opencv2/cudaimgproc.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
@@ -115,7 +116,8 @@ int main(int argc, char* argv[])
 	Mat frame, edge_inv;
 	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge, gpu_edge_inv;
 	UMat u_frame, u_gray, u_edge, u_edge_inv;
-	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(80, 250, 3, false);
+	cv::Ptr<cv::cuda::Filter> blur = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(5, 5), 1.5);
+	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(1, 100, 3, false);
 
 	frame_avg_init();
 
@@ -138,6 +140,7 @@ int main(int argc, char* argv[])
 			gpu_frame.upload(frame);
 			cv::cuda::GpuMat gpu_roi(gpu_frame, Rect(rx, ry, rw, rh));
 			cv::cuda::cvtColor(gpu_roi, gpu_gray, CV_BGR2GRAY);
+			blur->apply(gpu_gray, gpu_gray);
 			canny->detect(gpu_gray, gpu_edge);
 			cv::cuda::threshold(gpu_edge, gpu_edge_inv, 128, 255, THRESH_BINARY_INV);
 		} else {
@@ -145,7 +148,8 @@ int main(int argc, char* argv[])
 			frame.copyTo(u_frame);
 			UMat u_roi(u_frame, Rect(rx, ry, rw, rh));
 			cvtColor(u_roi, u_gray, CV_BGR2GRAY);
-			Canny(u_gray, u_edge, 80, 250);
+			GaussianBlur(u_gray, u_gray, Size(5, 5), 1.5);
+			Canny(u_gray, u_edge, 1, 100);
 			threshold(u_edge, u_edge_inv, 128, 255, THRESH_BINARY_INV);
 		}
 
