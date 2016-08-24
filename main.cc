@@ -114,10 +114,14 @@ int main(int argc, char* argv[])
 	VideoWriter output_writer("ldws-full.avi", CV_FOURCC('P','I','M','1'), 30, frame_size, true);
 
 	Mat frame, edge;
-	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge;
+	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge, gpu_lines;
 	UMat u_frame, u_gray, u_edge;
 	cv::Ptr<cv::cuda::Filter> blur = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(5, 5), 1.5);
 	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(1, 100, 3, false);
+	double rho = 1;
+	double theta = CV_PI/180;
+	vector<Vec4i> lines;
+	cv::Ptr<cuda::HoughSegmentDetector> hough = cuda::createHoughSegmentDetector(rho, theta, 50, 100);
 
 	frame_avg_init();
 
@@ -136,22 +140,43 @@ int main(int argc, char* argv[])
 		frame_begin();
 
 		if (enable_cuda) {
-			// CUDA
+			// CUDA implementation
 			gpu_frame.upload(frame);
+
+			// Set ROI to reduce workload
 			cv::cuda::GpuMat gpu_roi(gpu_frame, Rect(rx, ry, rw, rh));
+
+			// Convert to grayscale and blur
 			cv::cuda::cvtColor(gpu_roi, gpu_gray, CV_BGR2GRAY);
 			blur->apply(gpu_gray, gpu_gray);
+
+			// Canny edge detection
 			canny->detect(gpu_gray, gpu_edge);
+
+			// Probabilistic Hough line detection
+			hough->detect(gpu_edge, gpu_lines);
+			lines.resize(gpu_lines.cols);
+			Mat temp(1, gpu_lines.cols, CV_32SC4, &lines[0]);
+			gpu_lines.download(temp);
 		} else {
-			// TAPI
+			// TAPI implementation
 			frame.copyTo(u_frame);
+
+			// Set ROI to reduce workload
 			UMat u_roi(u_frame, Rect(rx, ry, rw, rh));
+
+			// Convert to grayscale and blur
 			cvtColor(u_roi, u_gray, CV_BGR2GRAY);
 			GaussianBlur(u_gray, u_gray, Size(5, 5), 1.5);
+
+			// Canny edge detection
 			Canny(u_gray, u_edge, 1, 100);
+
+			// Probabilistic Hough line detection
+			HoughLinesP(u_edge, lines, rho, theta, 50, 50, 100);
 		}
 
-		// TODO Add line detection
+		// TODO Add line filtering 
 
 		frame_end();
 
