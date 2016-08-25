@@ -18,20 +18,30 @@
 
 class ConfigStore
 {
-	ConfigStore();
-
 	public:
-		static ConfigStore* GetInstance( );
+		static ConfigStore* GetInstance();
+		void ParseConfig(int argc, char *argv[]);
 
+		// Command line settings
 		bool intermediate_display;
 		bool cuda_enabled;
 		bool opencl_enabled;
 		bool display_enabled;
 		bool file_write;
 		bool verbose;
-
 		std::string config_file;
+
+		// Config file settings
+		std::string video_file;
+		int rx;
+		int ry;
+		int rw;
+		int rh;
 
 	private:
 		static ConfigStore* instance;
+		ConfigStore();
+		void ParseCmdLine(int argc, char *argv[]);
+		void ParseCfgFile();
+
 };

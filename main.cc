@@ -26,7 +26,6 @@
 #include <iostream>
 #include <string>
 
-#include "config.h"
 #include "config_store.h"
 #include "fps.h"
 
@@ -95,47 +94,15 @@ void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, ConfigStore *cs)
 
 int main(int argc, char* argv[])
 {
+	// Get a config store and parse options
 	ConfigStore *cs = ConfigStore::GetInstance();
-
-	// Parse command line options
-	try {
-		TCLAP::CmdLine cmd_line("Lane Departure Warning System", ' ', LDWS_VERSION);
-		// FIXME CUDA and OpenCL should be mutually exclusive switches
-		TCLAP::SwitchArg enable_cuda_switch("u","enable-cuda","Enable CUDA support", cmd_line, false);
-		TCLAP::SwitchArg enable_opencl_switch("o","enable-opencl","Enable OpenCL support", cmd_line, false);
-		TCLAP::SwitchArg disable_display_switch("d","disable-display","Disable video display", cmd_line, false);
-		TCLAP::SwitchArg display_intermediate_switch("i","display-intermediate","Display intermediate processing steps", cmd_line, false);
-		TCLAP::SwitchArg write_video_switch("w","write-video","Write video to a file", cmd_line, false);
-		TCLAP::SwitchArg verbose_switch("v","verbose","Verbose messages", cmd_line, false);
-		TCLAP::ValueArg<string> config_file_string("c","config-file","Configuration file name", false, "ldws.conf", "filename");
-		cmd_line.add(config_file_string);
-		cmd_line.parse(argc, argv);
-
-		cs->intermediate_display = display_intermediate_switch.getValue();
-		cs->cuda_enabled = enable_cuda_switch.getValue();
-		cs->opencl_enabled = enable_opencl_switch.getValue();
-		cs->display_enabled = !disable_display_switch.getValue();
-		cs->file_write = write_video_switch.getValue();
-		cs->verbose = verbose_switch.getValue();
-		cs->config_file = config_file_string.getValue();
-	} catch (TCLAP::ArgException &e) {
-		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
-	}
-
-	// Parse config file
-	Config cfg;
-	cfg.readFile(cs->config_file.c_str());
-	string video_file = cfg.lookup("video_file");
-	int rx = cfg.lookup("region_of_interest.x");
-	int ry = cfg.lookup("region_of_interest.y");
-	int rw = cfg.lookup("region_of_interest.w");
-	int rh = cfg.lookup("region_of_interest.h");
+	cs->ParseConfig(argc, argv);
 
 	// Open video input file/device
-	VideoCapture capture(video_file);
+	VideoCapture capture(cs->video_file);
 	// If file open fails, try finding a camera indicated by an integer argument
 	if (!capture.isOpened())
-	{capture.open(atoi(video_file.c_str()));}
+	{capture.open(atoi(cs->video_file.c_str()));}
 
 	// Toggle OpenCL on/off
 	if (!cs->cuda_enabled)
@@ -198,7 +165,8 @@ int main(int argc, char* argv[])
 			gpu_frame.upload(frame);
 
 			// Set ROI to reduce workload
-			cv::cuda::GpuMat gpu_roi(gpu_frame, Rect(rx, ry, rw, rh));
+			// FIXME Rect can be set outside the fast path
+			cv::cuda::GpuMat gpu_roi(gpu_frame, Rect(cs->rx, cs->ry, cs->rw, cs->rh));
 
 			// Convert to grayscale and blur
 			cv::cuda::cvtColor(gpu_roi, gpu_gray, CV_BGR2GRAY);
@@ -217,7 +185,8 @@ int main(int argc, char* argv[])
 			frame.copyTo(u_frame);
 
 			// Set ROI to reduce workload
-			UMat u_roi(u_frame, Rect(rx, ry, rw, rh));
+			// FIXME Rect can be set outside the fast path
+			UMat u_roi(u_frame, Rect(cs->rx, cs->ry, cs->rw, cs->rh));
 
 			// Convert to grayscale and blur
 			cvtColor(u_roi, u_gray, CV_BGR2GRAY);
@@ -230,7 +199,8 @@ int main(int argc, char* argv[])
 			HoughLinesP(u_edge, lines, rho, theta, 50, 50, 100);
 		}
 
-		ProcessLanes(lines, frame, Point(rx, ry), cs);
+		// FIXME set roi Point outside fast path (in ConfigStore?)
+		ProcessLanes(lines, frame, Point(cs->rx, cs->ry), cs);
 
 		frame_end();
 
