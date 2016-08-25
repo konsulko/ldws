@@ -21,8 +21,6 @@
 #include <opencv2/cudaimgproc.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-#include <tclap/CmdLine.h>
-#include <libconfig.h++>
 #include <iostream>
 #include <string>
 
@@ -31,7 +29,6 @@
 
 using namespace std;
 using namespace cv;
-using namespace libconfig;
 
 struct Lane {
 	Lane(){}
@@ -54,8 +51,7 @@ void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, ConfigStore *cs)
 		int dx = pt2.x - pt1.x;
 		int dy = pt2.y - pt1.y;
 		float angle = atan2f(dy, dx) * 180/CV_PI;
-		// FIXME get min angle from defaults and config option
-		if (fabs(angle) < 20) {
+		if (fabs(angle) < cs->line_reject_degrees) {
 			continue;
 		}
 
@@ -99,10 +95,10 @@ int main(int argc, char* argv[])
 	cs->ParseConfig(argc, argv);
 
 	// Open video input file/device
-	VideoCapture capture(cs->video_file);
+	VideoCapture capture(cs->video_in);
 	// If file open fails, try finding a camera indicated by an integer argument
 	if (!capture.isOpened())
-	{capture.open(atoi(cs->video_file.c_str()));}
+	{capture.open(atoi(cs->video_in.c_str()));}
 
 	// Toggle OpenCL on/off
 	if (!cs->cuda_enabled)
@@ -130,7 +126,7 @@ int main(int argc, char* argv[])
 	}
 
 	// FIXME this should be conditional
-	VideoWriter output_writer("ldws-full.avi", CV_FOURCC('P','I','M','1'), 30, frame_size, true);
+	VideoWriter output_writer(cs->video_out, CV_FOURCC('P','I','M','1'), 30, frame_size, true);
 
 	Mat frame, edge;
 	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge, gpu_lines;
@@ -139,11 +135,11 @@ int main(int argc, char* argv[])
 	Rect roi_rect = Rect(cs->roi.x, cs->roi.y, cs->roi.w, cs->roi.h);
 	Point roi_point = Point(cs->roi.x, cs->roi.y);
 	cv::Ptr<cv::cuda::Filter> blur = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(5, 5), 1.5);
-	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(1, 100, 3, false);
+	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(cs->canny_min_thresh, cs->canny_max_thresh, 3, false);
 	double rho = 1;
 	double theta = CV_PI/180;
 	vector<Vec4i> lines;
-	cv::Ptr<cuda::HoughSegmentDetector> hough = cuda::createHoughSegmentDetector(rho, theta, 50, 100);
+	cv::Ptr<cuda::HoughSegmentDetector> hough = cuda::createHoughSegmentDetector(rho, theta, cs->hough_min_length, cs->hough_max_gap);
 
 	frame_avg_init();
 
@@ -192,10 +188,10 @@ int main(int argc, char* argv[])
 			GaussianBlur(u_gray, u_gray, Size(5, 5), 1.5);
 
 			// Canny edge detection
-			Canny(u_gray, u_edge, 1, 100);
+			Canny(u_gray, u_edge, cs->canny_min_thresh, cs->canny_max_thresh);
 
 			// Probabilistic Hough line detection
-			HoughLinesP(u_edge, lines, rho, theta, 50, 50, 100);
+			HoughLinesP(u_edge, lines, rho, theta, cs->hough_thresh, cs->hough_min_length, cs->hough_max_gap);
 		}
 
 		ProcessLanes(lines, frame, roi_point, cs);
@@ -229,7 +225,3 @@ int main(int argc, char* argv[])
 
 	cout << "Average FPS: " << frame_fps_avg_str() << endl;
 }
-
-
-
-

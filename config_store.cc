@@ -55,11 +55,18 @@ void ConfigStore::ParseCmdLine(int argc, char* argv[]) {
 void ConfigStore::ParseCfgFile() {
 	Config cfg;
 	cfg.readFile(config_file.c_str());
-	video_file = cfg.lookup("video_file").c_str();
-	roi.x = cfg.lookup("region_of_interest.x");
-	roi.y = cfg.lookup("region_of_interest.y");
-	roi.w = cfg.lookup("region_of_interest.w");
-	roi.h = cfg.lookup("region_of_interest.h");
+	cfg.lookupValue("video_input_file", video_in);
+	cfg.lookupValue("video_output_file", video_out);
+	cfg.lookupValue("region_of_interest.x", roi.x);
+	cfg.lookupValue("region_of_interest.y", roi.y);
+	cfg.lookupValue("region_of_interest.w", roi.w);
+	cfg.lookupValue("region_of_interest.h", roi.h);
+	cfg.lookupValue("line_reject_degrees", line_reject_degrees);
+	cfg.lookupValue("canny_min_thresh", canny_min_thresh);
+	cfg.lookupValue("canny_max_thresh", canny_max_thresh);
+	cfg.lookupValue("hough_thresh", hough_thresh);
+	cfg.lookupValue("hough_min_length", hough_min_length);
+	cfg.lookupValue("hough_max_gap", hough_max_gap);
 }
 
 void ConfigStore::ParseConfig(int argc, char* argv[])
@@ -70,15 +77,25 @@ void ConfigStore::ParseConfig(int argc, char* argv[])
 
 ConfigStore::ConfigStore()
 {
+	// Command line settings
 	intermediate_display = false;
 	cuda_enabled = false;
 	opencl_enabled = false;
 	display_enabled = true;
 	file_write = false;
 	verbose = false;
-
 	config_file = "ldws.conf";
-	std::cout << "construct CS" << std::endl;
+
+	// Config file settings
+	video_in = "ldws-in.avi";
+	video_out = "ldws-out.avi";
+	roi.x = 0; roi.y=0; roi.w=0; roi.h=0;
+	line_reject_degrees = 20;
+	canny_min_thresh = 1;
+	canny_max_thresh = 100;
+	hough_thresh = 50;
+	hough_min_length = 50;
+	hough_max_gap = 100;
 }
 
 ConfigStore *ConfigStore::instance = NULL;

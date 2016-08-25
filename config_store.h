@@ -32,13 +32,20 @@ class ConfigStore
 		std::string config_file;
 
 		// Config file settings
-		std::string video_file;
+		std::string video_in;
+		std::string video_out;
 		struct roi_struct {
 			int x;
 			int y;
 			int w;
 			int h;
 		} roi;
+		int line_reject_degrees;
+		int canny_min_thresh;
+		int canny_max_thresh;
+		int hough_thresh;
+		int hough_min_length;
+		int hough_max_gap;
 
 	private:
 		static ConfigStore* instance;
