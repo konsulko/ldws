@@ -14,79 +14,23 @@
  *     limitations under the License.
  */
 
+#include <opencv2/core.hpp>
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/core/ocl.hpp>
 #include <opencv2/cudaarithm.hpp>
 #include <opencv2/cudafilters.hpp>
 #include <opencv2/cudaimgproc.hpp>
-#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 #include <string>
 
 #include "config_store.h"
 #include "fps.h"
+#include "lane_detector.h"
 
 using namespace std;
 using namespace cv;
-
-struct Lane {
-	Lane(){}
-	Lane(Point a, Point b, float angle, float kl, float bl): p0(a),p1(b),angle(angle),
-	votes(0),visited(false),found(false),k(kl),b(bl) { }
-
-	Point p0, p1;
-	int votes;
-	bool visited, found;
-	float angle, k, b;
-};
-
-void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, ConfigStore *cs)
-{
-	vector<Lane> left, right;
-
-	for(int i = 0; i < lines.size(); i++ )
-	{
-		Point pt1 = Point(lines[i][0], lines[i][1]), pt2 = Point(lines[i][2], lines[i][3]);
-		int dx = pt2.x - pt1.x;
-		int dy = pt2.y - pt1.y;
-		float angle = atan2f(dy, dx) * 180/CV_PI;
-		if (fabs(angle) < cs->line_reject_degrees) {
-			continue;
-		}
-
-		// assume that vanishing point is close to the image horizontal center
-		// calculate line parameters: y = kx + b;
-		dx = (dx == 0) ? 1 : dx; // prevent DIV/0!
-		float k = dy/(float)dx;
-		float b = pt1.y - k*pt1.x;
-
-		// Categorize lines per side based on frame midpoint
-		int midx = (pt1.x + pt2.x) / 2;
-		if (midx < frame.cols/2) {
-			left.push_back(Lane(pt1, pt2, angle, k, b));
-		} else if (midx > frame.cols/2) {
-			right.push_back(Lane(pt1, pt2, angle, k, b));
-		}
-	}
-
-	// Draw candidate lines
-	if (cs->intermediate_display) {
-		for	(int i=0; i<right.size(); i++) {
-			line(frame, right[i].p0 + roi, right[i].p1 + roi, CV_RGB(0, 0, 255), 2);
-		}
-
-		for	(int i=0; i<left.size(); i++) {
-			line(frame, left[i].p0 + roi, left[i].p1 + roi, CV_RGB(255, 0, 0), 2);
-		}
-	}
-
-	// TODO ProcessSides
-	//ProcessSides(left, edge, false);
-	//ProcessSides(right, edge, true);
-
-	// TODO Draw lane guides
-}
 
 int main(int argc, char* argv[])
 {

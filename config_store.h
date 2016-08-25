@@ -14,6 +14,9 @@
  *     limitations under the License.
  */
 
+#ifndef CONFIG_STORE_H
+#define CONFIG_STORE_H
+
 #include <string>
 
 class ConfigStore
@@ -54,3 +57,5 @@ class ConfigStore
 		void ParseCfgFile();
 
 };
+
+#endif // CONFIG_STORE_H
