@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "config_store.h"
+#include "util.h"
 
 using namespace cv;
 using namespace std;
@@ -29,7 +30,7 @@ class LaneDetector
 {
 	public:
 		LaneDetector();
-		void ProcessLanes(vector<Vec4i> lines, Mat frame);
+		void ProcessLanes(vector<Vec4i> lines, Mat frame, Mat edge);
 
 	private:
 		ConfigStore *cs;
@@ -44,6 +45,15 @@ class LaneDetector
 			bool visited, found;
 			float angle, k, b;
 		};
+		struct Status {
+			Status():reset(true),lost(0){}
+			ExpMovingAverage k, b;
+			bool reset;
+			int lost;
+		};
+		Status laneR, laneL;
+		void FindResponses(Mat edge, int startX, int endX, int y, vector<int>& list);
+		void ProcessSide(vector<Lane> lanes, Mat edge, bool right);
 };
 
 #endif // LANE_DETECTOR_H

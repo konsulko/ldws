@@ -138,7 +138,17 @@ int main(int argc, char* argv[])
 			HoughLinesP(u_edge, lines, rho, theta, cs->hough_thresh, cs->hough_min_length, cs->hough_max_gap);
 		}
 
-		ld.ProcessLanes(lines, frame);
+		if (cs->cuda_enabled) {
+			gpu_edge.download(edge);
+		} else {
+			// Takes a reference
+			edge = u_edge.getMat(ACCESS_READ);
+		}
+		ld.ProcessLanes(lines, frame, edge);
+
+		// Release the reference taken in getMat()
+		if (!cs->cuda_enabled)
+			edge.release();
 
 		frame_end();
 
@@ -146,7 +156,6 @@ int main(int argc, char* argv[])
 		if (cs->intermediate_display) {
 			namedWindow("Edges");
 			if (cs->cuda_enabled) {
-				gpu_edge.download(edge);
 				imshow("Edges", edge);
 			} else {
 				imshow("Edges", u_edge);

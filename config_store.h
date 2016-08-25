@@ -49,6 +49,13 @@ class ConfigStore
 		int hough_thresh;
 		int hough_min_length;
 		int hough_max_gap;
+		int scan_step;
+		int bw_thresh;
+		int borderx;
+		int max_response_dist;
+		float k_vary_factor;
+		int b_vary_factor;
+		int max_lost_frames;
 
 	private:
 		static ConfigStore* instance;

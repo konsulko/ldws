@@ -96,6 +96,13 @@ ConfigStore::ConfigStore()
 	hough_thresh = 50;
 	hough_min_length = 50;
 	hough_max_gap = 100;
+	scan_step = 5;
+	bw_thresh = 250;
+	borderx = 10;
+	max_response_dist = 5;
+	k_vary_factor = 0.2f;
+	b_vary_factor = 20;
+	max_lost_frames = 30;
 }
 
 ConfigStore *ConfigStore::instance = NULL;
