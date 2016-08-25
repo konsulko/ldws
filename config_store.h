@@ -33,10 +33,12 @@ class ConfigStore
 
 		// Config file settings
 		std::string video_file;
-		int rx;
-		int ry;
-		int rw;
-		int rh;
+		struct roi_struct {
+			int x;
+			int y;
+			int w;
+			int h;
+		} roi;
 
 	private:
 		static ConfigStore* instance;

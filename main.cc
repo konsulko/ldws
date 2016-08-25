@@ -122,8 +122,6 @@ int main(int argc, char* argv[])
 	char fourcc[] = {(char)(ex & 0XFF),(char)((ex & 0XFF00) >> 8),(char)((ex & 0XFF0000) >> 16),(char)((ex & 0XFF000000) >> 24),0};
 	Size frame_size(static_cast<int>(width), static_cast<int>(height));
 	cout << "Video: frame size " << width << "x" << height << ", codec " << fourcc << endl;
-	// FIXME Error check ROI settings here
-
 
 	// Create output window
 	string window_name = "Full Video";
@@ -137,6 +135,9 @@ int main(int argc, char* argv[])
 	Mat frame, edge;
 	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge, gpu_lines;
 	UMat u_frame, u_gray, u_edge;
+	// FIXME need to error check for valid roi
+	Rect roi_rect = Rect(cs->roi.x, cs->roi.y, cs->roi.w, cs->roi.h);
+	Point roi_point = Point(cs->roi.x, cs->roi.y);
 	cv::Ptr<cv::cuda::Filter> blur = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(5, 5), 1.5);
 	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(1, 100, 3, false);
 	double rho = 1;
@@ -165,8 +166,7 @@ int main(int argc, char* argv[])
 			gpu_frame.upload(frame);
 
 			// Set ROI to reduce workload
-			// FIXME Rect can be set outside the fast path
-			cv::cuda::GpuMat gpu_roi(gpu_frame, Rect(cs->rx, cs->ry, cs->rw, cs->rh));
+			cv::cuda::GpuMat gpu_roi(gpu_frame, roi_rect);
 
 			// Convert to grayscale and blur
 			cv::cuda::cvtColor(gpu_roi, gpu_gray, CV_BGR2GRAY);
@@ -185,8 +185,7 @@ int main(int argc, char* argv[])
 			frame.copyTo(u_frame);
 
 			// Set ROI to reduce workload
-			// FIXME Rect can be set outside the fast path
-			UMat u_roi(u_frame, Rect(cs->rx, cs->ry, cs->rw, cs->rh));
+			UMat u_roi(u_frame, roi_rect);
 
 			// Convert to grayscale and blur
 			cvtColor(u_roi, u_gray, CV_BGR2GRAY);
@@ -199,8 +198,7 @@ int main(int argc, char* argv[])
 			HoughLinesP(u_edge, lines, rho, theta, 50, 50, 100);
 		}
 
-		// FIXME set roi Point outside fast path (in ConfigStore?)
-		ProcessLanes(lines, frame, Point(cs->rx, cs->ry), cs);
+		ProcessLanes(lines, frame, roi_point, cs);
 
 		frame_end();
 

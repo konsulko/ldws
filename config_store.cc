@@ -56,11 +56,10 @@ void ConfigStore::ParseCfgFile() {
 	Config cfg;
 	cfg.readFile(config_file.c_str());
 	video_file = cfg.lookup("video_file").c_str();
-	// FIXME: store this as a struct
-	rx = cfg.lookup("region_of_interest.x");
-	ry = cfg.lookup("region_of_interest.y");
-	rw = cfg.lookup("region_of_interest.w");
-	rh = cfg.lookup("region_of_interest.h");
+	roi.x = cfg.lookup("region_of_interest.x");
+	roi.y = cfg.lookup("region_of_interest.y");
+	roi.w = cfg.lookup("region_of_interest.w");
+	roi.h = cfg.lookup("region_of_interest.h");
 }
 
 void ConfigStore::ParseConfig(int argc, char* argv[])
