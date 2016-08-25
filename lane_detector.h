@@ -14,6 +14,9 @@
  *     limitations under the License.
  */
 
+#ifndef LANE_DETECTOR_H
+#define LANE_DETECTOR_H
+
 #include <opencv2/core.hpp>
 #include <vector>
 
@@ -22,5 +25,25 @@
 using namespace cv;
 using namespace std;
 
-void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, ConfigStore *cs);
+class LaneDetector
+{
+	public:
+		LaneDetector();
+		void ProcessLanes(vector<Vec4i> lines, Mat frame);
 
+	private:
+		ConfigStore *cs;
+		Point roi;
+		struct Lane {
+			Lane(){}
+			Lane(Point a, Point b, float angle, float kl, float bl): p0(a),p1(b),angle(angle),
+			votes(0),visited(false),found(false),k(kl),b(bl) { }
+
+			Point p0, p1;
+			int votes;
+			bool visited, found;
+			float angle, k, b;
+		};
+};
+
+#endif // LANE_DETECTOR_H

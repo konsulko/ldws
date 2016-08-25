@@ -23,18 +23,7 @@
 
 using namespace cv;
 
-struct Lane {
-	Lane(){}
-	Lane(Point a, Point b, float angle, float kl, float bl): p0(a),p1(b),angle(angle),
-	votes(0),visited(false),found(false),k(kl),b(bl) { }
-
-	Point p0, p1;
-	int votes;
-	bool visited, found;
-	float angle, k, b;
-};
-
-void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, ConfigStore *cs)
+void LaneDetector::ProcessLanes(vector<Vec4i> lines, Mat frame)
 {
 	vector<Lane> left, right;
 
@@ -81,4 +70,9 @@ void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, ConfigStore *cs)
 	// TODO Draw lane guides
 }
 
+LaneDetector::LaneDetector()
+{
+	cs = ConfigStore::GetInstance();
+	roi = Point(cs->roi.x, cs->roi.y);
+}
 

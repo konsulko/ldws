@@ -77,13 +77,13 @@ int main(int argc, char* argv[])
 	UMat u_frame, u_gray, u_edge;
 	// FIXME need to error check for valid roi
 	Rect roi_rect = Rect(cs->roi.x, cs->roi.y, cs->roi.w, cs->roi.h);
-	Point roi_point = Point(cs->roi.x, cs->roi.y);
 	cv::Ptr<cv::cuda::Filter> blur = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(5, 5), 1.5);
 	cv::Ptr<cv::cuda::CannyEdgeDetector> canny = cv::cuda::createCannyEdgeDetector(cs->canny_min_thresh, cs->canny_max_thresh, 3, false);
 	double rho = 1;
 	double theta = CV_PI/180;
 	vector<Vec4i> lines;
 	cv::Ptr<cuda::HoughSegmentDetector> hough = cuda::createHoughSegmentDetector(rho, theta, cs->hough_min_length, cs->hough_max_gap);
+	LaneDetector ld;
 
 	frame_avg_init();
 
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 			HoughLinesP(u_edge, lines, rho, theta, cs->hough_thresh, cs->hough_min_length, cs->hough_max_gap);
 		}
 
-		ProcessLanes(lines, frame, roi_point, cs);
+		ld.ProcessLanes(lines, frame);
 
 		frame_end();
 
