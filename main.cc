@@ -44,7 +44,7 @@ struct Lane {
 	float angle, k, b;
 };
 
-void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi)
+void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, bool display_intermediate)
 {
 	vector<Lane> left, right;
 
@@ -75,12 +75,14 @@ void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi)
 	}
 
 	// Draw candidate lines
-	for	(int i=0; i<right.size(); i++) {
-		line(frame, right[i].p0 + roi, right[i].p1 + roi, CV_RGB(0, 0, 255), 2);
-	}
+	if (display_intermediate) {
+		for	(int i=0; i<right.size(); i++) {
+			line(frame, right[i].p0 + roi, right[i].p1 + roi, CV_RGB(0, 0, 255), 2);
+		}
 
-	for	(int i=0; i<left.size(); i++) {
-		line(frame, left[i].p0 + roi, left[i].p1 + roi, CV_RGB(255, 0, 0), 2);
+		for	(int i=0; i<left.size(); i++) {
+			line(frame, left[i].p0 + roi, left[i].p1 + roi, CV_RGB(255, 0, 0), 2);
+		}
 	}
 
 	// TODO ProcessSides
@@ -233,7 +235,7 @@ int main(int argc, char* argv[])
 			HoughLinesP(u_edge, lines, rho, theta, 50, 50, 100);
 		}
 
-		ProcessLanes(lines, frame, Point(rx, ry));
+		ProcessLanes(lines, frame, Point(rx, ry), display_intermediate);
 
 		frame_end();
 
