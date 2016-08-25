@@ -27,6 +27,7 @@
 #include <string>
 
 #include "config.h"
+#include "config_store.h"
 #include "fps.h"
 
 using namespace std;
@@ -44,7 +45,7 @@ struct Lane {
 	float angle, k, b;
 };
 
-void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, bool display_intermediate)
+void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, ConfigStore *cs)
 {
 	vector<Lane> left, right;
 
@@ -75,7 +76,7 @@ void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, bool display_interm
 	}
 
 	// Draw candidate lines
-	if (display_intermediate) {
+	if (cs->intermediate_display) {
 		for	(int i=0; i<right.size(); i++) {
 			line(frame, right[i].p0 + roi, right[i].p1 + roi, CV_RGB(0, 0, 255), 2);
 		}
@@ -94,13 +95,7 @@ void ProcessLanes(vector<Vec4i> lines, Mat frame, Point roi, bool display_interm
 
 int main(int argc, char* argv[])
 {
-	string config_file;
-	bool display_intermediate;
-	bool enable_cuda;
-	bool enable_opencl;
-	bool enable_display;
-	bool write_output;
-	bool verbose;
+	ConfigStore *cs = ConfigStore::GetInstance();
 
 	// Parse command line options
 	try {
@@ -110,26 +105,26 @@ int main(int argc, char* argv[])
 		TCLAP::SwitchArg enable_opencl_switch("o","enable-opencl","Enable OpenCL support", cmd_line, false);
 		TCLAP::SwitchArg disable_display_switch("d","disable-display","Disable video display", cmd_line, false);
 		TCLAP::SwitchArg display_intermediate_switch("i","display-intermediate","Display intermediate processing steps", cmd_line, false);
-		TCLAP::SwitchArg write_output_switch("w","write-video","Write video to a file", cmd_line, false);
+		TCLAP::SwitchArg write_video_switch("w","write-video","Write video to a file", cmd_line, false);
 		TCLAP::SwitchArg verbose_switch("v","verbose","Verbose messages", cmd_line, false);
 		TCLAP::ValueArg<string> config_file_string("c","config-file","Configuration file name", false, "ldws.conf", "filename");
 		cmd_line.add(config_file_string);
 		cmd_line.parse(argc, argv);
 
-		display_intermediate = display_intermediate_switch.getValue();
-		enable_cuda = enable_cuda_switch.getValue();
-		enable_opencl = enable_opencl_switch.getValue();
-		enable_display = !disable_display_switch.getValue();
-		write_output = write_output_switch.getValue();
-		verbose = verbose_switch.getValue();
-		config_file = config_file_string.getValue();
+		cs->intermediate_display = display_intermediate_switch.getValue();
+		cs->cuda_enabled = enable_cuda_switch.getValue();
+		cs->opencl_enabled = enable_opencl_switch.getValue();
+		cs->display_enabled = !disable_display_switch.getValue();
+		cs->file_write = write_video_switch.getValue();
+		cs->verbose = verbose_switch.getValue();
+		cs->config_file = config_file_string.getValue();
 	} catch (TCLAP::ArgException &e) {
 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
 	}
 
 	// Parse config file
 	Config cfg;
-	cfg.readFile(config_file.c_str());
+	cfg.readFile(cs->config_file.c_str());
 	string video_file = cfg.lookup("video_file");
 	int rx = cfg.lookup("region_of_interest.x");
 	int ry = cfg.lookup("region_of_interest.y");
@@ -143,13 +138,13 @@ int main(int argc, char* argv[])
 	{capture.open(atoi(video_file.c_str()));}
 
 	// Toggle OpenCL on/off
-	if (!enable_cuda)
-		cv::ocl::setUseOpenCL(enable_opencl);
+	if (!cs->cuda_enabled)
+		cv::ocl::setUseOpenCL(cs->opencl_enabled);
 
 	string mode = "CPU";
-	if (enable_cuda)
+	if (cs->cuda_enabled)
 		mode = "CUDA";
-	else if (enable_opencl)
+	else if (cs->opencl_enabled)
 		mode = "OpenCL";
 	cout << "Mode: " << mode << endl;
 
@@ -165,7 +160,7 @@ int main(int argc, char* argv[])
 
 	// Create output window
 	string window_name = "Full Video";
-	if (enable_display) {
+	if (cs->display_enabled) {
 		namedWindow(window_name, CV_WINDOW_KEEPRATIO);
 	}
 
@@ -191,14 +186,14 @@ int main(int argc, char* argv[])
 			break;
 
 		// Display original frame
-		if (display_intermediate) {
+		if (cs->intermediate_display) {
 			namedWindow("Original Video", WINDOW_AUTOSIZE);
 			imshow("Original Video", frame);
 		}
 
 		frame_begin();
 
-		if (enable_cuda) {
+		if (cs->cuda_enabled) {
 			// CUDA implementation
 			gpu_frame.upload(frame);
 
@@ -235,14 +230,14 @@ int main(int argc, char* argv[])
 			HoughLinesP(u_edge, lines, rho, theta, 50, 50, 100);
 		}
 
-		ProcessLanes(lines, frame, Point(rx, ry), display_intermediate);
+		ProcessLanes(lines, frame, Point(rx, ry), cs);
 
 		frame_end();
 
 		// Display Canny image
-		if (display_intermediate) {
+		if (cs->intermediate_display) {
 			namedWindow("Edges");
-			if (enable_cuda) {
+			if (cs->cuda_enabled) {
 				gpu_edge.download(edge);
 				imshow("Edges", edge);
 			} else {
@@ -254,11 +249,11 @@ int main(int argc, char* argv[])
 		putText(frame, "FPS: " + frame_fps_str(), Point(5,25), FONT_HERSHEY_SIMPLEX, 1., Scalar(255, 100, 0), 2);
 
 		// Display full image
-		if (enable_display)
+		if (cs->display_enabled)
 			imshow(window_name, frame);
 
 		// Write frame to output file
-		if (write_output)
+		if (cs->file_write)
 			output_writer << frame;
 
 		if (waitKey(1) == 27) break;

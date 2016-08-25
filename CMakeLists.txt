@@ -20,7 +20,7 @@ IF (${OpenCV_VERSION} VERSION_LESS 3.0.0)
 ENDIF()
 
 SET(SRC
-	main.cc 
+	main.cc config_store.cc
 )
 
 SET(PROJECT_NAME
