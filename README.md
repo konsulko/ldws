@@ -19,13 +19,13 @@ Build
 Run
 ---
 
-First copy the example conf file to the top level directory as ldws.conf:
+Execute LDWS:
 
-	`cp examples/ldws-example.conf ldws.conf`
+	`./ldws --config-file examples/road-dual.conf`
 
-and execute LDWS:
+or
 
-	`./ldws`
+	`./ldws --config-file examples/road-single.conf`
 
 License
 -------
