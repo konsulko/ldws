@@ -189,7 +189,7 @@ void LaneDetector::ProcessSide(std::vector<Lane> lanes, Mat edge, bool right) {
 	delete[] votes;
 }
 
-void LaneDetector::ProcessLanes(vector<Vec4i> lines, Mat frame, Mat edge)
+void LaneDetector::ProcessLanes(vector<Vec4i> lines, Mat frame, Mat edge, Mat temp)
 {
 	vector<Lane> left, right;
 
@@ -234,15 +234,21 @@ void LaneDetector::ProcessLanes(vector<Vec4i> lines, Mat frame, Mat edge)
 	ProcessSide(right, edge, true);
 
 	// Draw lane guides
+	temp.setTo(0);
+	Point lane_pts[4];
+
 	int x = frame.cols * 0.55f;
 	int x2 = frame.cols;
-	line(frame, Point(x, laneR.k.get()*x + laneR.b.get()) + roi,
-			Point(x2, laneR.k.get() * x2 + laneR.b.get()) + roi, CV_RGB(255, 0, 255), 2);
+	lane_pts[0] = Point(x, laneR.k.get()*x + laneR.b.get()) + roi;
+	lane_pts[1] = Point(x2, laneR.k.get() * x2 + laneR.b.get()) + roi;
 
 	x = frame.cols * 0;
 	x2 = frame.cols * 0.45f;
-	line(frame, Point(x, laneL.k.get()*x + laneL.b.get()) + roi,
-			Point(x2, laneL.k.get() * x2 + laneL.b.get()) + roi, CV_RGB(255, 0, 255), 2);
+	lane_pts[2] = Point(x, laneL.k.get()*x + laneL.b.get()) + roi;
+	lane_pts[3] = Point(x2, laneL.k.get() * x2 + laneL.b.get()) + roi;
+
+	fillConvexPoly(temp, lane_pts, 4, CV_RGB(0, 0, 255));
+	addWeighted(temp, 0.5, frame, 0.9, 0, frame);
 }
 
 LaneDetector::LaneDetector()

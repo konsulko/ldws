@@ -73,6 +73,7 @@ int main(int argc, char* argv[])
 	VideoWriter output_writer(cs->video_out, CV_FOURCC('P','I','M','1'), 30, frame_size, true);
 
 	Mat frame, edge;
+	Mat temp = Mat(height, width, CV_8UC3);
 	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge, gpu_lines;
 	UMat u_frame, u_gray, u_edge;
 	// FIXME need to error check for valid roi
@@ -144,7 +145,7 @@ int main(int argc, char* argv[])
 			// Takes a reference
 			edge = u_edge.getMat(ACCESS_READ);
 		}
-		ld.ProcessLanes(lines, frame, edge);
+		ld.ProcessLanes(lines, frame, edge, temp);
 
 		// Release the reference taken in getMat()
 		if (!cs->cuda_enabled)

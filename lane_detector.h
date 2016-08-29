@@ -30,7 +30,7 @@ class LaneDetector
 {
 	public:
 		LaneDetector();
-		void ProcessLanes(vector<Vec4i> lines, Mat frame, Mat edge);
+		void ProcessLanes(vector<Vec4i> lines, Mat frame, Mat edge, Mat temp);
 
 	private:
 		ConfigStore *cs;
