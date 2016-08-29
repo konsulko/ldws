@@ -13,19 +13,27 @@ Dependencies
 Build
 -----
 
-	`cmake .`
-	`make`
+	cmake .
+	make
 
 Run
 ---
 
 Execute LDWS:
 
-	`./ldws --config-file examples/road-dual.conf`
+	./ldws --config-file examples/road-dual.conf
 
 or
 
-	`./ldws --config-file examples/road-single.conf`
+	./ldws --config-file examples/road-single.conf
+
+Enable OpenCL acceleration by adding
+
+	--enable-opencl
+
+Enable CUDA acceleration by adding
+
+	--enable-cuda
 
 License
 -------
