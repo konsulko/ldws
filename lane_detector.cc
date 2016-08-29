@@ -1,4 +1,13 @@
 /*
+ * The lane detection algorithm is taken from
+ * https://code.google.com/archive/p/opencv-lane-vehicle-track/
+ * https://github.com/tomazas/opencv-lane-vehicle-track
+ * where the Google Code page indicates this is under MIT license
+ * despite there being no copyright notice.
+ *
+ * Additional code to move to OpenCV 3, adapt to the LDWS application
+ * framework, and perform lane post processing is:
+ *
  * Copyright 2016 Konsulko Group
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
