@@ -90,9 +90,9 @@ ConfigStore::ConfigStore()
 	video_in = "ldws-in.avi";
 	video_out = "ldws-out.avi";
 	roi.x = 0; roi.y=0; roi.w=0; roi.h=0;
-	line_reject_degrees = 20;
-	canny_min_thresh = 1;
-	canny_max_thresh = 100;
+	line_reject_degrees = 30;
+	canny_min_thresh = 70;
+	canny_max_thresh = 140;
 	hough_thresh = 50;
 	hough_min_length = 50;
 	hough_max_gap = 100;
