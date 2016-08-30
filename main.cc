@@ -164,7 +164,8 @@ int main(int argc, char* argv[])
 		}
 
 		// Display FPS
-		putText(frame, "FPS: " + frame_fps_str(), Point(5,25), FONT_HERSHEY_SIMPLEX, 1., Scalar(255, 100, 0), 2);
+		putText(frame, "Mode: " + mode, Point(5, 30), FONT_HERSHEY_SIMPLEX, 1., Scalar(255, 100, 0), 2);
+		putText(frame, "FPS: " + frame_fps_str(), Point(5,60), FONT_HERSHEY_SIMPLEX, 1., Scalar(255, 100, 0), 2);
 
 		// Display full image
 		if (cs->display_enabled)
