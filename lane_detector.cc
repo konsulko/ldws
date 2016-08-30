@@ -185,7 +185,8 @@ void LaneDetector::ProcessSide(std::vector<Lane> lanes, Mat edge, bool right) {
 		}
 
 	} else {
-		printf("no lanes detected - lane tracking lost! counter increased\n");
+		if (cs->verbose)
+			printf("no lanes detected - lane tracking lost! counter increased\n");
 		side->lost++;
 		if (side->lost >= cs->max_lost_frames && !side->reset) {
 			// do full reset when lost for more than N frames
