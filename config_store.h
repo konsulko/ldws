@@ -56,6 +56,12 @@ class ConfigStore
 		float k_vary_factor;
 		int b_vary_factor;
 		int max_lost_frames;
+		int test_left_x_alert;
+		int test_left_x_danger;
+		int test_right_x_alert;
+		int test_right_x_danger;
+		int test_line_mid_x;
+		int test_line_y;
 
 	private:
 		static ConfigStore* instance;

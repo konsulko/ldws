@@ -199,6 +199,22 @@ void LaneDetector::ProcessSide(std::vector<Lane> lanes, Mat edge, bool right) {
 	delete[] votes;
 }
 
+bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r)
+{
+	Point2f x = o2 - o1;
+	Point2f d1 = p1 - o1;
+	Point2f d2 = p2 - o2;
+
+	float cross = d1.x*d2.y - d1.y*d2.x;
+	if (abs(cross) < /*EPS*/1e-8)
+		return false;
+
+	double t1 = (x.x * d2.y - x.y * d2.x)/cross;
+	r = o1 + d1 * t1;
+
+	return true;
+}
+
 void LaneDetector::ProcessLanes(vector<Vec4i> lines, Mat frame, Mat edge, Mat temp)
 {
 	vector<Lane> left, right;
@@ -259,6 +275,49 @@ void LaneDetector::ProcessLanes(vector<Vec4i> lines, Mat frame, Mat edge, Mat te
 
 	fillConvexPoly(temp, lane_pts, 4, CV_RGB(0, 0, 255));
 	addWeighted(temp, 0.5, frame, 0.9, 0, frame);
+
+	// Draw left and right position meters
+	line(frame, Point(0, cs->test_line_y), Point(cs->test_left_x_alert, cs->test_line_y), CV_RGB(0, 255, 0), 2);
+	line(frame, Point(cs->test_left_x_alert, cs->test_line_y), Point(cs->test_left_x_danger, cs->test_line_y), CV_RGB(255, 128, 0), 2);
+	line(frame, Point(cs->test_left_x_danger, cs->test_line_y), Point(cs->test_line_mid_x, cs->test_line_y), CV_RGB(255, 0, 0), 2);
+
+	line(frame, Point(frame.cols-1, cs->test_line_y), Point(cs->test_right_x_alert, cs->test_line_y), CV_RGB(0, 255, 0), 2);
+	line(frame, Point(cs->test_right_x_alert, cs->test_line_y), Point(cs->test_right_x_danger, cs->test_line_y), CV_RGB(255, 128, 0), 2);
+	line(frame, Point(cs->test_right_x_danger, cs->test_line_y), Point(cs->test_line_mid_x, cs->test_line_y), CV_RGB(255, 0, 0), 2);
+
+	// Find intersection points of lane lines and position meters
+	Point2f left_isf, right_isf;
+	Point left_is, right_is;
+	intersection(lane_pts[0], lane_pts[1], Point(0, cs->test_line_y), Point(frame.cols-1, cs->test_line_y), right_isf);
+	intersection(lane_pts[2], lane_pts[3], Point(0, cs->test_line_y), Point(frame.cols-1, cs->test_line_y), left_isf);
+	left_is = (Point)left_isf;
+	right_is = (Point)right_isf;
+	circle(frame, left_is, 2, CV_RGB(0, 0, 255), 3);
+	circle(frame, right_is, 2, CV_RGB(0, 0, 255), 3);
+
+	// Draw left warning arrows
+	if (left_is.x < cs->test_line_mid_x) {
+		if (cs->test_left_x_alert < left_is.x) {
+			line(frame, Point(frame.cols/2, 50), Point(frame.cols/2-25, 75), CV_RGB(255, 128, 0), 15);
+			line(frame, Point(frame.cols/2, 100), Point(frame.cols/2-25, 75), CV_RGB(255, 128, 0), 15);
+		}
+		if (cs->test_left_x_danger < left_is.x) {
+			line(frame, Point(frame.cols/2-30, 50), Point(frame.cols/2-25-30, 75), CV_RGB(255, 0, 0), 15);
+			line(frame, Point(frame.cols/2-30, 100), Point(frame.cols/2-25-30, 75), CV_RGB(255, 0, 0), 15);
+		}
+	}
+
+	// Draw right warning arrows
+	if (right_is.x > cs->test_line_mid_x) {
+		if (cs->test_right_x_alert > right_is.x) {
+			line(frame, Point(frame.cols/2, 50), Point(frame.cols/2+25, 75), CV_RGB(255, 128, 0), 15);
+			line(frame, Point(frame.cols/2, 100), Point(frame.cols/2+25, 75), CV_RGB(255, 128, 0), 15);
+		}
+		if (cs->test_right_x_danger > right_is.x) {
+			line(frame, Point(frame.cols/2+30, 50), Point(frame.cols/2+25+30, 75), CV_RGB(255, 0, 0), 15);
+			line(frame, Point(frame.cols/2+30, 100), Point(frame.cols/2+25+30, 75), CV_RGB(255, 0, 0), 15);
+		}
+	}
 }
 
 LaneDetector::LaneDetector()
@@ -266,4 +325,3 @@ LaneDetector::LaneDetector()
 	cs = ConfigStore::GetInstance();
 	roi = Point(cs->roi.x, cs->roi.y);
 }
-

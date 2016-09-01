@@ -67,6 +67,12 @@ void ConfigStore::ParseCfgFile() {
 	cfg.lookupValue("hough_thresh", hough_thresh);
 	cfg.lookupValue("hough_min_length", hough_min_length);
 	cfg.lookupValue("hough_max_gap", hough_max_gap);
+	cfg.lookupValue("test_left_x_alert", test_left_x_alert);
+	cfg.lookupValue("test_left_x_danger", test_left_x_danger);
+	cfg.lookupValue("test_right_x_alert", test_right_x_alert);
+	cfg.lookupValue("test_right_x_danger", test_right_x_danger);
+	cfg.lookupValue("test_line_mid_x", test_line_mid_x);
+	cfg.lookupValue("test_line_y", test_line_y);
 }
 
 void ConfigStore::ParseConfig(int argc, char* argv[])
