@@ -68,7 +68,6 @@ do
 		then
 			COMPUTE_PROFILE=1 COMPUTE_PROFILE_CONFIG=tools/nvvp.cfg COMPUTE_PROFILE_LOG=$ODIR/legacyprof-$filename-$mode.log ./ldws --config-file $cfg $opt > $ODIR/legacyprof-$filename-$mode.out 2>&1
 			sed -f tools/opencl2cuda.sed's/OPENCL_/CUDA_/g' $ODIR/legacyprof-$filename-$mode.log > $ODIR/nvvp-cmdlineprof-$filename-$mode.log
-			# TODO translate metrics fields
 		fi
 	done
 done
