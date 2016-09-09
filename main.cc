@@ -137,8 +137,10 @@ int main(int argc, char* argv[])
 
 			// Probabilistic Hough line detection
 			HoughLinesP(u_edge, u_lines, rho, theta, cs->hough_thresh, cs->hough_min_length, cs->hough_max_gap);
-			Mat temp = u_lines.getMat(ACCESS_READ);
-			temp.copyTo(lines);
+			lines.resize(u_lines.rows);
+			Mat temp = (u_lines.rows, 1, CV_32SC4, u_lines.getMat(ACCESS_READ));
+			if (u_lines.rows)
+				temp.copyTo(lines);
 		}
 
 		if (cs->cuda_enabled) {
