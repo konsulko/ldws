@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 	Mat frame, edge;
 	Mat temp = Mat(height, width, CV_8UC3);
 	cv::cuda::GpuMat gpu_frame, gpu_gray, gpu_edge, gpu_lines;
-	UMat u_frame, u_gray, u_edge;
+	UMat u_frame, u_gray, u_edge, u_lines;
 	// FIXME need to error check for valid roi
 	Rect roi_rect = Rect(cs->roi.x, cs->roi.y, cs->roi.w, cs->roi.h);
 	cv::Ptr<cv::cuda::Filter> blur = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(5, 5), 1.5);
@@ -136,7 +136,9 @@ int main(int argc, char* argv[])
 			Canny(u_gray, u_edge, cs->canny_min_thresh, cs->canny_max_thresh);
 
 			// Probabilistic Hough line detection
-			HoughLinesP(u_edge, lines, rho, theta, cs->hough_thresh, cs->hough_min_length, cs->hough_max_gap);
+			HoughLinesP(u_edge, u_lines, rho, theta, cs->hough_thresh, cs->hough_min_length, cs->hough_max_gap);
+			Mat temp = u_lines.getMat(ACCESS_READ);
+			temp.copyTo(lines);
 		}
 
 		if (cs->cuda_enabled) {
