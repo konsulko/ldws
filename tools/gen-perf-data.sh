@@ -55,7 +55,7 @@ do
 
 		# Generate flamegraph
 		perf script -i $ODIR/perf-$filename-$mode.dat | stackcollapse-perf.pl > $ODIR/perf-$filename-$mode-folded.dat
-		grep ldws $ODIR/perf-$filename-$mode-folded.dat | flamegraph.pl --fontsize 8 > $ODIR/flamegraph-$filename-$mode.svg
+		grep ldws $ODIR/perf-$filename-$mode-folded.dat | flamegraph.pl --title "" --fontsize 8 > $ODIR/flamegraph-$filename-$mode.svg
 
 		# Generate nvprof summary and nvvp profiler data for CUDA runs (CPU APIS + GPU kernel activity)
 		if [ "$mode" = "cuda" ];
