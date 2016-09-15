@@ -35,6 +35,7 @@ void ConfigStore::ParseCmdLine(int argc, char* argv[]) {
 		TCLAP::SwitchArg disable_display_switch("d","disable-display","Disable video display", cmd_line, false);
 		TCLAP::SwitchArg display_intermediate_switch("i","display-intermediate","Display intermediate processing steps", cmd_line, false);
 		TCLAP::SwitchArg write_video_switch("w","write-video","Write video to a file", cmd_line, false);
+		TCLAP::SwitchArg frame_dump_switch("f","frame-dump","Dump last captured frame (and optionally intermediate image frames) to file", cmd_line, false);
 		TCLAP::SwitchArg verbose_switch("v","verbose","Verbose messages", cmd_line, false);
 		TCLAP::ValueArg<string> config_file_string("c","config-file","Configuration file name", false, "ldws.conf", "filename");
 		cmd_line.add(config_file_string);
@@ -45,6 +46,7 @@ void ConfigStore::ParseCmdLine(int argc, char* argv[]) {
 		opencl_enabled = enable_opencl_switch.getValue();
 		display_enabled = !disable_display_switch.getValue();
 		file_write = write_video_switch.getValue();
+		frame_dump = frame_dump_switch.getValue();
 		verbose = verbose_switch.getValue();
 		config_file = config_file_string.getValue();
 	} catch (TCLAP::ArgException &e) {

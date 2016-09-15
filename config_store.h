@@ -31,6 +31,7 @@ class ConfigStore
 		bool opencl_enabled;
 		bool display_enabled;
 		bool file_write;
+		bool frame_dump;
 		bool verbose;
 		std::string config_file;
 

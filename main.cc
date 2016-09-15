@@ -182,5 +182,17 @@ int main(int argc, char* argv[])
 		if (waitKey(1) == 27) break;
 	}
 
+	/* If frame dump enabled, then dump last frames */
+	if (cs->frame_dump) {
+		if (cs->intermediate_display) {
+			if (cs->cuda_enabled) {
+				imwrite("edges.png", edge);
+			} else {
+				imwrite("edges.png", u_edge);
+			}
+		}
+		imwrite("full.png", frame);
+	}
+
 	cout << "Average FPS: " << frame_fps_avg_str() << endl;
 }
